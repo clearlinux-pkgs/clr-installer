@@ -4,16 +4,16 @@
 #
 Name     : clr-installer
 Version  : 1.0.0
-Release  : 1
+Release  : 2
 URL      : https://github.com/clearlinux/clr-installer/archive/1.0.0.tar.gz
 Source0  : https://github.com/clearlinux/clr-installer/archive/1.0.0.tar.gz
 Summary  : No detailed summary available
 Group    : Development/Tools
 License  : Apache-2.0 BSD-3-Clause GPL-3.0 MIT
 Requires: clr-installer-bin = %{version}-%{release}
-Requires: clr-installer-config = %{version}-%{release}
 Requires: clr-installer-data = %{version}-%{release}
 Requires: clr-installer-license = %{version}-%{release}
+Requires: clr-installer-services = %{version}-%{release}
 BuildRequires : buildreq-golang
 
 %description
@@ -25,19 +25,11 @@ As the installer is a part of the Clear Linux OS distribution, this program foll
 Summary: bin components for the clr-installer package.
 Group: Binaries
 Requires: clr-installer-data = %{version}-%{release}
-Requires: clr-installer-config = %{version}-%{release}
 Requires: clr-installer-license = %{version}-%{release}
+Requires: clr-installer-services = %{version}-%{release}
 
 %description bin
 bin components for the clr-installer package.
-
-
-%package config
-Summary: config components for the clr-installer package.
-Group: Default
-
-%description config
-config components for the clr-installer package.
 
 
 %package data
@@ -56,6 +48,14 @@ Group: Default
 license components for the clr-installer package.
 
 
+%package services
+Summary: services components for the clr-installer package.
+Group: Systemd services
+
+%description services
+services components for the clr-installer package.
+
+
 %prep
 %setup -q -n clr-installer-1.0.0
 
@@ -64,11 +64,11 @@ export http_proxy=http://127.0.0.1:9/
 export https_proxy=http://127.0.0.1:9/
 export no_proxy=localhost,127.0.0.1,0.0.0.0
 export LANG=C
-export SOURCE_DATE_EPOCH=1540339588
+export SOURCE_DATE_EPOCH=1541541255
 make  %{?_smp_mflags}
 
 %install
-export SOURCE_DATE_EPOCH=1540339588
+export SOURCE_DATE_EPOCH=1541541255
 rm -rf %{buildroot}
 mkdir -p %{buildroot}/usr/share/package-licenses/clr-installer
 cp COPYING %{buildroot}/usr/share/package-licenses/clr-installer/COPYING
@@ -91,10 +91,6 @@ cp vendor/gopkg.in/yaml.v2/NOTICE %{buildroot}/usr/share/package-licenses/clr-in
 %defattr(-,root,root,-)
 /usr/bin/clr-installer
 
-%files config
-%defattr(-,root,root,-)
-/usr/lib/systemd/system/clr-installer.service
-
 %files data
 %defattr(-,root,root,-)
 /usr/share/clr-installer/themes/clr-installer.theme
@@ -116,3 +112,7 @@ cp vendor/gopkg.in/yaml.v2/NOTICE %{buildroot}/usr/share/package-licenses/clr-in
 /usr/share/package-licenses/clr-installer/vendor_gopkg.in_yaml.v2_LICENSE
 /usr/share/package-licenses/clr-installer/vendor_gopkg.in_yaml.v2_LICENSE.libyaml
 /usr/share/package-licenses/clr-installer/vendor_gopkg.in_yaml.v2_NOTICE
+
+%files services
+%defattr(-,root,root,-)
+/usr/lib/systemd/system/clr-installer.service
