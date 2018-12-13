@@ -4,7 +4,7 @@
 #
 Name     : clr-installer
 Version  : 1.1.2
-Release  : 8
+Release  : 9
 URL      : https://github.com/clearlinux/clr-installer/archive/1.1.2.tar.gz
 Source0  : https://github.com/clearlinux/clr-installer/archive/1.1.2.tar.gz
 Summary  : No detailed summary available
