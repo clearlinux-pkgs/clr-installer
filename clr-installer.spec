@@ -4,7 +4,7 @@
 #
 Name     : clr-installer
 Version  : 1.1.5
-Release  : 14
+Release  : 15
 URL      : https://github.com/clearlinux/clr-installer/archive/1.1.5.tar.gz
 Source0  : https://github.com/clearlinux/clr-installer/archive/1.1.5.tar.gz
 Summary  : No detailed summary available
@@ -64,17 +64,19 @@ export http_proxy=http://127.0.0.1:9/
 export https_proxy=http://127.0.0.1:9/
 export no_proxy=localhost,127.0.0.1,0.0.0.0
 export LANG=C
-export SOURCE_DATE_EPOCH=1550193412
+export SOURCE_DATE_EPOCH=1550193978
 make  %{?_smp_mflags}
 
 
 %install
-export SOURCE_DATE_EPOCH=1550193412
+export SOURCE_DATE_EPOCH=1550193978
 rm -rf %{buildroot}
 mkdir -p %{buildroot}/usr/share/package-licenses/clr-installer
 cp COPYING %{buildroot}/usr/share/package-licenses/clr-installer/COPYING
 cp vendor/github.com/VladimirMarkelov/clui/LICENSE %{buildroot}/usr/share/package-licenses/clr-installer/vendor_github.com_VladimirMarkelov_clui_LICENSE
 cp vendor/github.com/atotto/clipboard/LICENSE %{buildroot}/usr/share/package-licenses/clr-installer/vendor_github.com_atotto_clipboard_LICENSE
+cp vendor/github.com/digitalocean/go-smbios/LICENSE.md %{buildroot}/usr/share/package-licenses/clr-installer/vendor_github.com_digitalocean_go-smbios_LICENSE.md
+cp vendor/github.com/digitalocean/go-smbios/scripts/license.txt %{buildroot}/usr/share/package-licenses/clr-installer/vendor_github.com_digitalocean_go-smbios_scripts_license.txt
 cp vendor/github.com/huandu/xstrings/LICENSE %{buildroot}/usr/share/package-licenses/clr-installer/vendor_github.com_huandu_xstrings_LICENSE
 cp vendor/github.com/mattn/go-runewidth/LICENSE %{buildroot}/usr/share/package-licenses/clr-installer/vendor_github.com_mattn_go-runewidth_LICENSE
 cp vendor/github.com/nsf/termbox-go/LICENSE %{buildroot}/usr/share/package-licenses/clr-installer/vendor_github.com_nsf_termbox-go_LICENSE
@@ -109,6 +111,8 @@ cp vendor/gopkg.in/yaml.v2/NOTICE %{buildroot}/usr/share/package-licenses/clr-in
 /usr/share/package-licenses/clr-installer/COPYING
 /usr/share/package-licenses/clr-installer/vendor_github.com_VladimirMarkelov_clui_LICENSE
 /usr/share/package-licenses/clr-installer/vendor_github.com_atotto_clipboard_LICENSE
+/usr/share/package-licenses/clr-installer/vendor_github.com_digitalocean_go-smbios_LICENSE.md
+/usr/share/package-licenses/clr-installer/vendor_github.com_digitalocean_go-smbios_scripts_license.txt
 /usr/share/package-licenses/clr-installer/vendor_github.com_huandu_xstrings_LICENSE
 /usr/share/package-licenses/clr-installer/vendor_github.com_mattn_go-runewidth_LICENSE
 /usr/share/package-licenses/clr-installer/vendor_github.com_nsf_termbox-go_LICENSE
