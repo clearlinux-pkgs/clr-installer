@@ -1,0 +1,5 @@
+/usr/bin/clr-installer-gui
+/usr/share/applications/clr-installer-gui.desktop
+/usr/share/clr-installer/themes/clr.png
+/usr/share/polkit-1/actions/org.clearlinux.clr-installer-gui.policy
+/usr/share/polkit-1/rules.d/org.clearlinux.clr-installer-gui.rules
