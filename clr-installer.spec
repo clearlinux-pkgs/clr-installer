@@ -4,7 +4,7 @@
 #
 Name     : clr-installer
 Version  : 2.1.0
-Release  : 35
+Release  : 36
 URL      : https://github.com/clearlinux/clr-installer/archive/2.1.0.tar.gz
 Source0  : https://github.com/clearlinux/clr-installer/archive/2.1.0.tar.gz
 Summary  : No detailed summary available
@@ -16,6 +16,7 @@ Requires: clr-installer-license = %{version}-%{release}
 BuildRequires : buildreq-golang
 BuildRequires : glib-dev
 BuildRequires : gtk3-dev
+Patch1: 0001-fix-install-os-core-plus.patch
 
 %description
 # Clear Linux Installer
@@ -58,19 +59,25 @@ license components for the clr-installer package.
 
 %prep
 %setup -q -n clr-installer-2.1.0
+%patch1 -p1
 
 %build
 export http_proxy=http://127.0.0.1:9/
 export https_proxy=http://127.0.0.1:9/
 export no_proxy=localhost,127.0.0.1,0.0.0.0
-export LANG=C
-export SOURCE_DATE_EPOCH=1563483239
-export LDFLAGS="${LDFLAGS} -fno-lto"
+export LANG=C.UTF-8
+export SOURCE_DATE_EPOCH=1564529214
+export GCC_IGNORE_WERROR=1
+export GOPROXY=file:///usr/share/goproxy
+export CFLAGS="$CFLAGS -fno-lto "
+export FCFLAGS="$CFLAGS -fno-lto "
+export FFLAGS="$CFLAGS -fno-lto "
+export CXXFLAGS="$CXXFLAGS -fno-lto "
 make  %{?_smp_mflags}
 
 
 %install
-export SOURCE_DATE_EPOCH=1563483239
+export SOURCE_DATE_EPOCH=1564529214
 rm -rf %{buildroot}
 mkdir -p %{buildroot}/usr/share/package-licenses/clr-installer
 cp COPYING %{buildroot}/usr/share/package-licenses/clr-installer/COPYING
@@ -101,15 +108,10 @@ cp vendor/gopkg.in/yaml.v2/NOTICE %{buildroot}/usr/share/package-licenses/clr-in
 
 %files bin
 %defattr(-,root,root,-)
-%exclude /usr/bin/clr-installer-gui
 /usr/bin/clr-installer
 
 %files data
 %defattr(-,root,root,-)
-%exclude /usr/share/applications/clr-installer-gui.desktop
-%exclude /usr/share/clr-installer/themes/clr.png
-%exclude /usr/share/polkit-1/actions/org.clearlinux.clr-installer-gui.policy
-%exclude /usr/share/polkit-1/rules.d/org.clearlinux.clr-installer-gui.rules
 /usr/share/clr-installer/iso_templates/initrd_init_template
 /usr/share/clr-installer/iso_templates/isolinux.cfg.template
 /usr/share/clr-installer/themes/clr-installer.theme
