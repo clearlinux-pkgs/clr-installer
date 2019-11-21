@@ -4,7 +4,7 @@
 #
 Name     : clr-installer
 Version  : 2.3.4
-Release  : 43
+Release  : 44
 URL      : https://github.com/clearlinux/clr-installer/archive/2.3.4.tar.gz
 Source0  : https://github.com/clearlinux/clr-installer/archive/2.3.4.tar.gz
 Summary  : No detailed summary available
@@ -75,7 +75,7 @@ export http_proxy=http://127.0.0.1:9/
 export https_proxy=http://127.0.0.1:9/
 export no_proxy=localhost,127.0.0.1,0.0.0.0
 export LANG=C.UTF-8
-export SOURCE_DATE_EPOCH=1574293718
+export SOURCE_DATE_EPOCH=1574298369
 export GCC_IGNORE_WERROR=1
 export GOPROXY=file:///usr/share/goproxy
 export CFLAGS="$CFLAGS -fno-lto "
@@ -86,7 +86,7 @@ make  %{?_smp_mflags}
 
 
 %install
-export SOURCE_DATE_EPOCH=1574293718
+export SOURCE_DATE_EPOCH=1574298369
 rm -rf %{buildroot}
 mkdir -p %{buildroot}/usr/share/package-licenses/clr-installer
 cp %{_builddir}/clr-installer-2.3.4/COPYING %{buildroot}/usr/share/package-licenses/clr-installer/22273f3aad3947215054b423975932fc74575723
