@@ -1,3 +1,21 @@
 # This file contains build requirements that get picked up but are
 # undesirable. One entry per line, no whitespace.
 go-gopkg.in-check.v1
+go-github.com-GehirnInc-crypt
+go-github.com-VladimirMarkelov-clui
+go-github.com-atotto-clipboard
+go-github.com-coreos-go-systemd-v22
+go-github.com-digitalocean-go-smbios
+go-github.com-google-go-cmp
+go-github.com-gotk3-gotk3
+go-github.com-huandu-xstrings
+go-github.com-kr-pretty
+go-github.com-kr-text
+go-github.com-leonelquinteros-gotext
+go-github.com-mattn-go-runewidth
+go-github.com-nightlyone-lockfile
+go-github.com-nsf-termbox-go
+go-golang.org-x-crypto
+go-golang.org-x-sys
+go-golang.org-x-text
+go-gopkg.in-yaml.v2
