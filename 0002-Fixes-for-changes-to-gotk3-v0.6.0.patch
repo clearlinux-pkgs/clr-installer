@@ -1,0 +1,952 @@
+From 9eac32df5b8297bcf0ea0c93e185d5353a832fa4 Mon Sep 17 00:00:00 2001
+From: Mark D Horn <mark.d.horn@intel.com>
+Date: Tue, 6 Jul 2021 18:46:05 -0700
+Subject: [PATCH 2/2] Fixes for changes to gotk3 v0.6.0
+
+Several API changes from gotk3 v0.4.0 to v0.6.0
+which was a required bump to support building under golang 1.16.x.
+
+Signed-off-by: Mark D Horn <mark.d.horn@intel.com>
+---
+ gui/contentview.go          |   5 +-
+ gui/network/network.go      |  44 ++++------------
+ gui/pages/bundle.go         |  23 ++++----
+ gui/pages/disk_config.go    | 101 +++++++++++-------------------------
+ gui/pages/hostname.go       |   4 +-
+ gui/pages/init.go           |   5 +-
+ gui/pages/install.go        |  36 +++----------
+ gui/pages/kernel_options.go |   4 +-
+ gui/pages/keyboard.go       |   8 +--
+ gui/pages/language.go       |   8 +--
+ gui/pages/swupd_config.go   |  14 ++---
+ gui/pages/timezone.go       |   8 +--
+ gui/pages/user_add.go       |  20 ++-----
+ gui/switcher.go             |  12 ++---
+ gui/window.go               |  76 +++++++--------------------
+ 15 files changed, 98 insertions(+), 270 deletions(-)
+
+diff --git a/gui/contentview.go b/gui/contentview.go
+index 6bf887a98671..e36e293a9804 100644
+--- a/gui/contentview.go
++++ b/gui/contentview.go
+@@ -56,10 +56,7 @@ func NewContentView(controller pages.Controller) (*ContentView, error) {
+ 	// Ensure navigation works properly
+ 	view.list.SetSelectionMode(gtk.SELECTION_SINGLE)
+ 	view.list.SetActivateOnSingleClick(true)
+-	_, err = view.list.Connect("row-activated", view.onRowActivated)
+-	if err != nil {
+-		return nil, err
+-	}
++	_ = view.list.Connect("row-activated", view.onRowActivated)
+ 	view.scroll.Add(view.list)
+ 
+ 	return view, nil
+diff --git a/gui/network/network.go b/gui/network/network.go
+index 336a4c946281..6937e40911aa 100644
+--- a/gui/network/network.go
++++ b/gui/network/network.go
+@@ -56,12 +56,9 @@ func createNetworkTestDialog() (*networkTestDialog, error) {
+ 	if err != nil {
+ 		return nil, err
+ 	}
+-	_, err = glib.IdleAdd(func() {
++	_ = glib.IdleAdd(func() {
+ 		netDialog.pbar.SetFraction(0.0)
+ 	})
+-	if err != nil {
+-		return nil, err
+-	}
+ 	netDialog.pbar.SetHAlign(gtk.ALIGN_FILL)
+ 	netDialog.pbar.SetMarginBottom(12)
+ 	netDialog.pbar.SetMarginTop(12)
+@@ -88,17 +85,16 @@ func createNetworkTestDialog() (*networkTestDialog, error) {
+ 	netDialog.dialog.SetDeletable(false)
+ 
+ 	// Configure confirm button
+-	netDialog.confirmButton, err = netDialog.dialog.GetWidgetForResponse(gtk.RESPONSE_OK)
++	var buttonIWidget gtk.IWidget
++	buttonIWidget, err = netDialog.dialog.GetWidgetForResponse(gtk.RESPONSE_OK)
+ 	if err != nil {
+ 		log.Error("Error getting confirm button", err)
+ 		return nil, err
+ 	}
+-	_, err = netDialog.confirmButton.Connect("clicked", func() {
++	netDialog.confirmButton = buttonIWidget.ToWidget()
++	_ = netDialog.confirmButton.Connect("clicked", func() {
+ 		netDialog.dialog.Destroy()
+ 	})
+-	if err != nil {
+-		return nil, err
+-	}
+ 	netDialog.confirmButton.SetSensitive(false)
+ 
+ 	netDialog.dialog.ShowAll()
+@@ -122,13 +118,9 @@ func RunNetworkTest(md *model.SystemInstall) (NetTestReturnCode, error) {
+ 		// Automatically close the dialog on success
+ 		if controller.NetworkPassing {
+ 			time.Sleep(time.Second)
+-			_, err = glib.IdleAdd(func() {
++			_ = glib.IdleAdd(func() {
+ 				netDialog.dialog.Destroy()
+ 			})
+-			if err != nil {
+-				log.ErrorError(err)
+-				netDialog.dialog.Destroy()
+-			}
+ 		}
+ 	}()
+ 	netDialog.dialog.Run()
+@@ -142,7 +134,7 @@ func RunNetworkTest(md *model.SystemInstall) (NetTestReturnCode, error) {
+ 
+ // Desc will push a description box into the view for later marking
+ func (netDialog *networkTestDialog) Desc(desc string) {
+-	_, err := glib.IdleAdd(func() {
++	_ = glib.IdleAdd(func() {
+ 		// The target prefix is used by the massinstaller to separate target,
+ 		// offline, and ISO content installs. It is unnecessary for the GUI.
+ 		desc = strings.TrimPrefix(desc, swupd.TargetPrefix)
+@@ -150,36 +142,24 @@ func (netDialog *networkTestDialog) Desc(desc string) {
+ 		netDialog.label.SetText(desc)
+ 		netDialog.label.ShowAll()
+ 	})
+-	if err != nil {
+-		log.ErrorError(err)
+-		return
+-	}
+ }
+ 
+ // Failure handles failure to install
+ func (netDialog *networkTestDialog) Failure() {
+-	_, err := glib.IdleAdd(func() {
++	_ = glib.IdleAdd(func() {
+ 		netDialog.label.SetText(utils.Locale.Get("Network check failed."))
+ 		netDialog.confirmButton.SetSensitive(true)
+ 		netDialog.label.ShowAll()
+ 	})
+-	if err != nil {
+-		log.ErrorError(err)
+-		return
+-	}
+ }
+ 
+ // Success notes the install was successful
+ func (netDialog *networkTestDialog) Success() {
+-	_, err := glib.IdleAdd(func() {
++	_ = glib.IdleAdd(func() {
+ 		netDialog.label.SetText(utils.Locale.Get("Success"))
+ 		netDialog.confirmButton.SetSensitive(true)
+ 		netDialog.label.ShowAll()
+ 	})
+-	if err != nil {
+-		log.ErrorError(err)
+-		return
+-	}
+ }
+ 
+ // LoopWaitDuration will return the duration for step-waits
+@@ -194,11 +174,7 @@ func (netDialog *networkTestDialog) Partial(total int, step int) {
+ 
+ // Step will step the progressbar in indeterminate mode
+ func (netDialog *networkTestDialog) Step() {
+-	_, err := glib.IdleAdd(func() {
++	_ = glib.IdleAdd(func() {
+ 		netDialog.pbar.Pulse()
+ 	})
+-	if err != nil {
+-		log.ErrorError(err)
+-		return
+-	}
+ }
+diff --git a/gui/pages/bundle.go b/gui/pages/bundle.go
+index 93d83e019d6e..2b25758c12ec 100644
+--- a/gui/pages/bundle.go
++++ b/gui/pages/bundle.go
+@@ -156,18 +156,21 @@ func createDecisionBox(model *model.SystemInstall, bundle *Bundle) (*decisionDia
+ 	decisionMaker.dialog.SetDeletable(false)
+ 
+ 	// Configure confirm button
+-	decisionMaker.confirmButton, err = decisionMaker.dialog.GetWidgetForResponse(gtk.RESPONSE_OK)
++	var buttonIWidget gtk.IWidget
++	buttonIWidget, err = decisionMaker.dialog.GetWidgetForResponse(gtk.RESPONSE_OK)
+ 	if err != nil {
+ 		return nil, err
+ 	}
++	decisionMaker.confirmButton = buttonIWidget.ToWidget()
+ 
+ 	// Configure cancel button
+-	decisionMaker.cancelButton, err = decisionMaker.dialog.GetWidgetForResponse(gtk.RESPONSE_CANCEL)
++	buttonIWidget, err = decisionMaker.dialog.GetWidgetForResponse(gtk.RESPONSE_CANCEL)
+ 	if err != nil {
+ 		return nil, err
+ 	}
++	decisionMaker.cancelButton = buttonIWidget.ToWidget()
+ 
+-	_, err = decisionMaker.confirmButton.Connect("clicked", func() {
++	_ = decisionMaker.confirmButton.Connect("clicked", func() {
+ 		if ret, _ := network.RunNetworkTest(model); ret != network.NetTestSuccess {
+ 			bundle.clearPage = true
+ 			bundle.ResetChanges()
+@@ -178,18 +181,12 @@ func createDecisionBox(model *model.SystemInstall, bundle *Bundle) (*decisionDia
+ 		bundle.windowController.SetButtonState(ButtonConfirm, controller.NetworkPassing)
+ 		decisionMaker.dialog.Destroy()
+ 	})
+-	if err != nil {
+-		return nil, err
+-	}
+ 
+-	_, err = decisionMaker.cancelButton.Connect("clicked", func() {
++	_ = decisionMaker.cancelButton.Connect("clicked", func() {
+ 		bundle.clearPage = true
+ 		decisionMaker.dialog.Destroy()
+ 		bundle.ResetChanges()
+ 	})
+-	if err != nil {
+-		return nil, err
+-	}
+ 
+ 	decisionMaker.confirmButton.SetSensitive(true)
+ 	decisionMaker.cancelButton.SetSensitive(true)
+@@ -246,7 +243,7 @@ func NewBundlePage(windowController Controller, model *model.SystemInstall) (Pag
+ 
+ 	for i := range bundle.selections {
+ 		if !controller.NetworkPassing {
+-			if _, err := bundle.selections[i].Connect("toggled", func() {
++			_ = bundle.selections[i].Connect("toggled", func() {
+ 				if !controller.NetworkPassing && !bundle.clearPage {
+ 					// we dont want to fire any checkbox signals
+ 					// when we want to clear the page. if encounter
+@@ -262,9 +259,7 @@ func NewBundlePage(windowController Controller, model *model.SystemInstall) (Pag
+ 				if !controller.NetworkPassing && bundle.clearPage {
+ 					bundle.clearPage = false
+ 				}
+-			}); err != nil {
+-				return nil, err
+-			}
++			})
+ 		}
+ 	}
+ 
+diff --git a/gui/pages/disk_config.go b/gui/pages/disk_config.go
+index 2ba0f12afdeb..f69f4bf33468 100644
+--- a/gui/pages/disk_config.go
++++ b/gui/pages/disk_config.go
+@@ -165,7 +165,7 @@ func NewDiskConfigPage(controller Controller, model *model.SystemInstall) (Page,
+ 		sc.AddClass("label-radio")
+ 	}
+ 	safeBox.PackStart(disk.safeButton, false, false, 0)
+-	if _, err := disk.safeButton.Connect("toggled", func() {
++	_ = disk.safeButton.Connect("toggled", func() {
+ 		// REfactor the TUI code to also return when not active
+ 		if !disk.safeButton.GetActive() {
+ 			return
+@@ -183,9 +183,7 @@ func NewDiskConfigPage(controller Controller, model *model.SystemInstall) (Page,
+ 				log.Warning("Problem populating possible disk selections")
+ 			}
+ 		}
+-	}); err != nil {
+-		return nil, err
+-	}
++	})
+ 
+ 	safeDescription := utils.Locale.Get("Install on an unallocated disk or alongside existing partitions.")
+ 	safeLabel, err := gtk.LabelNew(safeDescription)
+@@ -216,7 +214,7 @@ func NewDiskConfigPage(controller Controller, model *model.SystemInstall) (Page,
+ 		sc.AddClass("label-radio-warning")
+ 	}
+ 	destructiveBox.PackStart(disk.destructiveButton, false, false, 0)
+-	if _, err := disk.destructiveButton.Connect("toggled", func() {
++	_ = disk.destructiveButton.Connect("toggled", func() {
+ 		// REfactor the TUI code to also return when not active
+ 		if !disk.destructiveButton.GetActive() {
+ 			return
+@@ -234,9 +232,7 @@ func NewDiskConfigPage(controller Controller, model *model.SystemInstall) (Page,
+ 				log.Warning("Problem populating possible disk selections")
+ 			}
+ 		}
+-	}); err != nil {
+-		return nil, err
+-	}
++	})
+ 
+ 	destructiveDescription := utils.Locale.Get("Erase all data on selected media and install Clear Linux* OS.")
+ 	destructiveLabel, err := gtk.LabelNew(destructiveDescription)
+@@ -259,9 +255,7 @@ func NewDiskConfigPage(controller Controller, model *model.SystemInstall) (Page,
+ 		return nil, err
+ 	}
+ 
+-	if _, err := disk.chooserCombo.Connect("changed", disk.onChooserComboChanged); err != nil {
+-		log.Warning("Error connecting to entry")
+-	}
++	_ = disk.chooserCombo.Connect("changed", disk.onChooserComboChanged)
+ 
+ 	// Add the renderers to the ComboBox
+ 	mediaRenderer, _ := gtk.CellRendererPixbufNew()
+@@ -325,9 +319,7 @@ func NewDiskConfigPage(controller Controller, model *model.SystemInstall) (Page,
+ 	disk.optionsGrid.Attach(disk.encryptCheck, 0, 1, 1, 1)
+ 
+ 	// Generate signal on encryptCheck button click
+-	if _, err := disk.encryptCheck.Connect("clicked", disk.onEncryptClick); err != nil {
+-		return nil, err
+-	}
++	_ = disk.encryptCheck.Connect("clicked", disk.onEncryptClick)
+ 
+ 	// Buttons
+ 	disk.rescanButton, err = setButton(utils.Locale.Get("RESCAN MEDIA"), "button-page")
+@@ -336,9 +328,7 @@ func NewDiskConfigPage(controller Controller, model *model.SystemInstall) (Page,
+ 	}
+ 	disk.rescanButton.SetTooltipText(utils.Locale.Get("Rescan for changes to hot swappable media."))
+ 
+-	if _, err = disk.rescanButton.Connect("clicked", disk.onRescanClick); err != nil {
+-		return nil, err
+-	}
++	_ = disk.rescanButton.Connect("clicked", disk.onRescanClick)
+ 
+ 	rescanBox, err := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 0)
+ 	if err != nil {
+@@ -386,9 +376,7 @@ func NewDiskConfigPage(controller Controller, model *model.SystemInstall) (Page,
+ 	reqs := []string{"CLR_BOOT:vfat", "CLR_SWAP:linux-swap", "CLR_ROOT:ext*|xfs|f2fs"}
+ 	disk.advancedButton.SetTooltipText(utils.Locale.Get("Minimum requirements: %s", strings.Join(reqs, ", ")))
+ 	advancedBox.PackStart(disk.advancedButton, false, false, 0)
+-	if _, err := disk.advancedButton.Connect("toggled", disk.advancedButtonToggled); err != nil {
+-		return nil, err
+-	}
++	_ = disk.advancedButton.Connect("toggled", disk.advancedButtonToggled)
+ 
+ 	advancedDescription := utils.Locale.Get("Use partitioning tool to configure and select media via partition names.")
+ 	advancedLabel, err := gtk.LabelNew(advancedDescription)
+@@ -414,9 +402,7 @@ func NewDiskConfigPage(controller Controller, model *model.SystemInstall) (Page,
+ 		utils.Locale.Get(
+ 			"Launch the external partitioning tool to name the partitions to be used for the installation."))
+ 
+-	if _, err = disk.partitionButton.Connect("clicked", disk.runDiskPartitionTool); err != nil {
+-		return nil, err
+-	}
++	_ = disk.partitionButton.Connect("clicked", disk.runDiskPartitionTool)
+ 
+ 	partitionBox, err := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 0)
+ 	if err != nil {
+@@ -659,36 +645,14 @@ func (disk *DiskConfig) createPassphraseDialog() {
+ 	disk.passphrase.SetVisibility(false)
+ 	disk.passphraseConfirm.SetVisibility(false)
+ 
+-	if _, err := disk.passphrase.Connect("changed", disk.onPassphraseChange); err != nil {
+-		log.Warning("Error connecting to entry")
+-		return
+-	}
+-
+-	if _, err := disk.passphrase.Connect("activate", disk.onPassphraseActive); err != nil {
+-		log.Warning("Error connecting to entry")
+-		return
+-	}
+-
+-	if _, err := disk.passphrase.Connect("key-press-event", disk.onPassphraseKeyPress); err != nil {
+-		log.Warning("Error connecting to entry")
+-		return
+-	}
++	_ = disk.passphrase.Connect("changed", disk.onPassphraseChange)
++	_ = disk.passphrase.Connect("activate", disk.onPassphraseActive)
++	_ = disk.passphrase.Connect("key-press-event", disk.onPassphraseKeyPress)
+ 
+ 	// Generate signal on PassphraseConfirm change
+-	if _, err := disk.passphraseConfirm.Connect("changed", disk.onPassphraseChange); err != nil {
+-		log.Warning("Error connecting to entry")
+-		return
+-	}
+-
+-	if _, err := disk.passphraseConfirm.Connect("activate", disk.onPassphraseActive); err != nil {
+-		log.Warning("Error connecting to entry")
+-		return
+-	}
+-
+-	if _, err := disk.passphraseConfirm.Connect("key-press-event", disk.onPassphraseKeyPress); err != nil {
+-		log.Warning("Error connecting to entry")
+-		return
+-	}
++	_ = disk.passphraseConfirm.Connect("changed", disk.onPassphraseChange)
++	_ = disk.passphraseConfirm.Connect("activate", disk.onPassphraseActive)
++	_ = disk.passphraseConfirm.Connect("key-press-event", disk.onPassphraseKeyPress)
+ 
+ 	disk.passphraseDialog, err = common.CreateDialog(contentBox, title)
+ 	if err != nil {
+@@ -699,10 +663,7 @@ func (disk *DiskConfig) createPassphraseDialog() {
+ 	disk.passphraseDialog.AddActionWidget(disk.passphraseCancel, gtk.RESPONSE_CANCEL)
+ 	disk.passphraseDialog.AddActionWidget(disk.passphraseOK, gtk.RESPONSE_OK)
+ 
+-	_, err = disk.passphraseDialog.Connect("response", disk.dialogResponse)
+-	if err != nil {
+-		log.Warning("Error connecting to dialog")
+-	}
++	_ = disk.passphraseDialog.Connect("response", disk.dialogResponse)
+ }
+ 
+ func (disk *DiskConfig) onPassphraseChange(entry *gtk.Entry) {
+@@ -767,19 +728,23 @@ func (disk *DiskConfig) onChooserComboChanged(combo *gtk.ComboBox) {
+ 	}
+ 
+ 	if iter, iterErr := combo.GetActiveIter(); iter != nil && iterErr == nil {
+-		if model, modelErr := combo.GetModel(); modelErr == nil && model.GetNColumns() >= 2 {
+-			// Extract from model
+-			if valueObj, getErr := model.GetValue(iter, 2); getErr == nil && valueObj != nil {
+-				if _, fType, typeErr := valueObj.Type(); typeErr == nil && fType == glib.TYPE_STRING {
+-					if name, nameErr := valueObj.GetString(); nameErr == nil {
+-						disk.tempSelectedTarget = name
+-						log.Debug("ComboBox entry selected is: %v", name)
+-					} else {
+-						log.Warning("Failed to get model string from value: %v", nameErr)
++		if modelITreeModel, modelErr := combo.GetModel(); modelErr == nil {
++			if model := modelITreeModel.ToTreeModel(); model != nil && model.GetNColumns() >= 2 {
++				// Extract from model
++				if valueObj, getErr := model.GetValue(iter, 2); getErr == nil && valueObj != nil {
++					if _, fType, typeErr := valueObj.Type(); typeErr == nil && fType == glib.TYPE_STRING {
++						if name, nameErr := valueObj.GetString(); nameErr == nil {
++							disk.tempSelectedTarget = name
++							log.Debug("ComboBox entry selected is: %v", name)
++						} else {
++							log.Warning("Failed to get model string from value: %v", nameErr)
++						}
+ 					}
++				} else {
++					log.Warning("Failed to get ComboBox model value from iter: %v", getErr)
+ 				}
+ 			} else {
+-				log.Warning("Failed to get ComboBox model value from iter: %v", getErr)
++				log.Warning("Failed to get ComboBox model: %v", modelErr)
+ 			}
+ 		} else {
+ 			log.Warning("Failed to get ComboBox model: %v", modelErr)
+@@ -1306,11 +1271,7 @@ func (disk *DiskConfig) runDiskPartitionTool() {
+ 			return
+ 		}
+ 
+-		_, err = dialog.Connect("response", disk.warningDialogResponse)
+-		if err != nil {
+-			log.Error("Error connecting to dialog", err)
+-			return
+-		}
++		_ = dialog.Connect("response", disk.warningDialogResponse)
+ 
+ 		dialog.ShowAll()
+ 		dialog.Run()
+diff --git a/gui/pages/hostname.go b/gui/pages/hostname.go
+index c16a81adb417..b9432e3f5852 100644
+--- a/gui/pages/hostname.go
++++ b/gui/pages/hostname.go
+@@ -69,9 +69,7 @@ func NewHostnamePage(controller Controller, model *model.SystemInstall) (Page, e
+ 	page.box.PackStart(page.warning, false, false, 10)
+ 
+ 	// Generate signal on Hostname entry change
+-	if _, err := page.entry.Connect("changed", page.onChange); err != nil {
+-		return nil, err
+-	}
++	_ = page.entry.Connect("changed", page.onChange)
+ 
+ 	return page, nil
+ }
+diff --git a/gui/pages/init.go b/gui/pages/init.go
+index ac6f66256ce8..867415bf0215 100644
+--- a/gui/pages/init.go
++++ b/gui/pages/init.go
+@@ -124,7 +124,7 @@ const (
+ // is correctly performed, and that we have valid constraints in which to
+ // scroll.
+ func scrollToView(scroll *gtk.ScrolledWindow, container gtk.IWidget, widget *gtk.Widget) {
+-	_, err := glib.TimeoutAdd(100, func() bool {
++	_ = glib.TimeoutAdd(100, func() bool {
+ 		adjustment := scroll.GetVAdjustment()
+ 		_, y, err := widget.TranslateCoordinates(container, 0, 0)
+ 		if err != nil {
+@@ -134,9 +134,6 @@ func scrollToView(scroll *gtk.ScrolledWindow, container gtk.IWidget, widget *gtk
+ 		adjustment.SetValue(math.Min(float64(y), maxSize))
+ 		return false
+ 	})
+-	if err != nil {
+-		log.Warning("Error adjusting scroll: ", err) // Just log trivial error
+-	}
+ }
+ 
+ // getTextFromEntry reads the text from an Entry buffer
+diff --git a/gui/pages/install.go b/gui/pages/install.go
+index 279a941c6e28..a4703c880d4c 100644
+--- a/gui/pages/install.go
++++ b/gui/pages/install.go
+@@ -201,13 +201,9 @@ func (page *InstallPage) ResetChanges() {
+ 			page.info.SetText(text)
+ 		}
+ 
+-		_, err = glib.IdleAdd(func() {
++		_ = glib.IdleAdd(func() {
+ 			page.pbar.SetFraction(1.0)
+ 		})
+-		if err != nil {
+-			log.ErrorError(err) // TODO: Handle error in a better way
+-			return
+-		}
+ 
+ 		go func() {
+ 			_ = network.DownloadInstallerMessage("Post-Installation",
+@@ -222,7 +218,7 @@ func (page *InstallPage) ResetChanges() {
+ 
+ // Desc will push a description box into the view for later marking
+ func (page *InstallPage) Desc(desc string) {
+-	_, err := glib.IdleAdd(func() {
++	_ = glib.IdleAdd(func() {
+ 		// The target prefix is used by the massinstaller to separate target,
+ 		// offline, and ISO content installs. It is unnecessary for the GUI.
+ 		desc = strings.TrimPrefix(desc, swupd.TargetPrefix)
+@@ -253,32 +249,20 @@ func (page *InstallPage) Desc(desc string) {
+ 		page.list.SelectRow(row)
+ 		scrollToView(page.scroll, page.list, &row.Widget)
+ 	})
+-	if err != nil {
+-		log.ErrorError(err) // TODO: Handle error in a better way
+-		return
+-	}
+ }
+ 
+ // Failure handles failure to install
+ func (page *InstallPage) Failure() {
+-	_, err := glib.IdleAdd(func() {
++	_ = glib.IdleAdd(func() {
+ 		page.widgets[page.selection].MarkStatus(false)
+ 	})
+-	if err != nil {
+-		log.ErrorError(err) // TODO: Handle error in a better way
+-		return
+-	}
+ }
+ 
+ // Success notes the install was successful
+ func (page *InstallPage) Success() {
+-	_, err := glib.IdleAdd(func() {
++	_ = glib.IdleAdd(func() {
+ 		page.widgets[page.selection].MarkStatus(true)
+ 	})
+-	if err != nil {
+-		log.ErrorError(err) // TODO: Handle error in a better way
+-		return
+-	}
+ }
+ 
+ // LoopWaitDuration will return the duration for step-waits
+@@ -288,22 +272,14 @@ func (page *InstallPage) LoopWaitDuration() time.Duration {
+ 
+ // Partial handles an actual progress update
+ func (page *InstallPage) Partial(total int, step int) {
+-	_, err := glib.IdleAdd(func() {
++	_ = glib.IdleAdd(func() {
+ 		page.pbar.SetFraction(float64(step) / float64(total))
+ 	})
+-	if err != nil {
+-		log.ErrorError(err) // TODO: Handle error in a better way
+-		return
+-	}
+ }
+ 
+ // Step will step the progressbar in indeterminate mode
+ func (page *InstallPage) Step() {
+-	_, err := glib.IdleAdd(func() {
++	_ = glib.IdleAdd(func() {
+ 		page.pbar.Pulse()
+ 	})
+-	if err != nil {
+-		log.ErrorError(err) // TODO: Handle error in a better way
+-		return
+-	}
+ }
+diff --git a/gui/pages/kernel_options.go b/gui/pages/kernel_options.go
+index 4104d79aebc4..42291c616de4 100644
+--- a/gui/pages/kernel_options.go
++++ b/gui/pages/kernel_options.go
+@@ -86,9 +86,7 @@ func NewConfigKernelPage(controller Controller, model *model.SystemInstall) (Pag
+ 	if err != nil {
+ 		return nil, err
+ 	}
+-	if _, err := page.list.Connect("row-activated", page.onRowActivated); err != nil {
+-		return nil, err
+-	}
++	_ = page.list.Connect("row-activated", page.onRowActivated)
+ 	page.scroll.Add(page.list)
+ 
+ 	// Create list data
+diff --git a/gui/pages/keyboard.go b/gui/pages/keyboard.go
+index 57c33f5297c0..ef162642ad7b 100644
+--- a/gui/pages/keyboard.go
++++ b/gui/pages/keyboard.go
+@@ -51,9 +51,7 @@ func NewKeyboardPage(controller Controller, model *model.SystemInstall) (Page, e
+ 		return nil, err
+ 	}
+ 	page.box.PackStart(page.searchEntry, false, false, 0)
+-	if _, err := page.searchEntry.Connect("search-changed", page.onChange); err != nil {
+-		return nil, err
+-	}
++	_ = page.searchEntry.Connect("search-changed", page.onChange)
+ 
+ 	// ScrolledWindow
+ 	page.scroll, err = setScrolledWindow(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC, "scroller")
+@@ -67,9 +65,7 @@ func NewKeyboardPage(controller Controller, model *model.SystemInstall) (Page, e
+ 	if err != nil {
+ 		return nil, err
+ 	}
+-	if _, err := page.list.Connect("row-activated", page.onRowActivated); err != nil {
+-		return nil, err
+-	}
++	_ = page.list.Connect("row-activated", page.onRowActivated)
+ 	page.scroll.Add(page.list)
+ 
+ 	// Create list data
+diff --git a/gui/pages/language.go b/gui/pages/language.go
+index 72be93b7bb19..95718e0ec611 100644
+--- a/gui/pages/language.go
++++ b/gui/pages/language.go
+@@ -52,9 +52,7 @@ func NewLanguagePage(controller Controller, model *model.SystemInstall) (Page, e
+ 		return nil, err
+ 	}
+ 	page.box.PackStart(page.searchEntry, false, false, 0)
+-	if _, err := page.searchEntry.Connect("search-changed", page.onChange); err != nil {
+-		return nil, err
+-	}
++	_ = page.searchEntry.Connect("search-changed", page.onChange)
+ 
+ 	// ScrolledWindow
+ 	page.scroll, err = setScrolledWindow(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC, "scroller")
+@@ -68,9 +66,7 @@ func NewLanguagePage(controller Controller, model *model.SystemInstall) (Page, e
+ 	if err != nil {
+ 		return nil, err
+ 	}
+-	if _, err := page.list.Connect("row-activated", page.onRowActivated); err != nil {
+-		return nil, err
+-	}
++	_ = page.list.Connect("row-activated", page.onRowActivated)
+ 	page.scroll.Add(page.list)
+ 
+ 	// Create list data
+diff --git a/gui/pages/swupd_config.go b/gui/pages/swupd_config.go
+index 8fe2a305f7e6..81b3544044a6 100644
+--- a/gui/pages/swupd_config.go
++++ b/gui/pages/swupd_config.go
+@@ -90,9 +90,7 @@ func NewSwupdConfigPage(controller Controller, model *model.SystemInstall) (Page
+ 	page.mirrorWarning.SetMaxWidthChars(1) // The value does not matter but its required for LineWrap to work
+ 	page.mirrorWarning.SetLineWrap(true)
+ 	page.box.PackStart(page.mirrorWarning, false, false, 0)
+-	if _, err := page.mirrorEntry.Connect("changed", page.onMirrorChange); err != nil {
+-		return nil, err
+-	}
++	_ = page.mirrorEntry.Connect("changed", page.onMirrorChange)
+ 
+ 	page.insecureCheck, err = gtk.CheckButtonNew()
+ 	if err != nil {
+@@ -102,7 +100,7 @@ func NewSwupdConfigPage(controller Controller, model *model.SystemInstall) (Page
+ 	page.insecureCheck.SetMarginStart(14)         // Custom margin to align properly
+ 	page.insecureCheck.SetHAlign(gtk.ALIGN_START) // Ensures that clickable area is only within the label
+ 	page.box.PackStart(page.insecureCheck, false, false, 10)
+-	if _, err := page.insecureCheck.Connect("clicked", func(button *gtk.CheckButton) {
++	_ = page.insecureCheck.Connect("clicked", func(button *gtk.CheckButton) {
+ 		if button.GetActive() {
+ 			page.model.AllowInsecureHTTP = true
+ 		} else {
+@@ -110,9 +108,7 @@ func NewSwupdConfigPage(controller Controller, model *model.SystemInstall) (Page
+ 		}
+ 
+ 		page.validateMirror()
+-	}); err != nil {
+-		return nil, err
+-	}
++	})
+ 
+ 	separator, err := gtk.SeparatorNew(gtk.ORIENTATION_HORIZONTAL)
+ 	if err != nil {
+@@ -157,9 +153,7 @@ func NewSwupdConfigPage(controller Controller, model *model.SystemInstall) (Page
+ 	page.autoUpdateButton.SetMarginStart(14)         // Custom margin to align properly
+ 	page.autoUpdateButton.SetHAlign(gtk.ALIGN_START) // Ensures that clickable area is only within the label
+ 	page.box.PackStart(page.autoUpdateButton, false, false, 10)
+-	if _, err := page.autoUpdateButton.Connect("clicked", page.onAutoUpdateClick); err != nil {
+-		return nil, err
+-	}
++	_ = page.autoUpdateButton.Connect("clicked", page.onAutoUpdateClick)
+ 
+ 	var warning, style string
+ 	if page.model.AutoUpdate.Value() {
+diff --git a/gui/pages/timezone.go b/gui/pages/timezone.go
+index 87a8640d6bdf..52f9da7665cb 100644
+--- a/gui/pages/timezone.go
++++ b/gui/pages/timezone.go
+@@ -51,9 +51,7 @@ func NewTimezonePage(controller Controller, model *model.SystemInstall) (Page, e
+ 		return nil, err
+ 	}
+ 	page.box.PackStart(page.searchEntry, false, false, 0)
+-	if _, err := page.searchEntry.Connect("search-changed", page.onChange); err != nil {
+-		return nil, err
+-	}
++	_ = page.searchEntry.Connect("search-changed", page.onChange)
+ 
+ 	// ScrolledWindow
+ 	page.scroll, err = setScrolledWindow(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC, "scroller")
+@@ -67,9 +65,7 @@ func NewTimezonePage(controller Controller, model *model.SystemInstall) (Page, e
+ 	if err != nil {
+ 		return nil, err
+ 	}
+-	if _, err := page.list.Connect("row-activated", page.onRowActivated); err != nil {
+-		return nil, err
+-	}
++	_ = page.list.Connect("row-activated", page.onRowActivated)
+ 	page.scroll.Add(page.list)
+ 
+ 	// Create list data
+diff --git a/gui/pages/user_add.go b/gui/pages/user_add.go
+index fb4810b871a5..8677b45ef602 100644
+--- a/gui/pages/user_add.go
++++ b/gui/pages/user_add.go
+@@ -118,29 +118,19 @@ func NewUserAddPage(controller Controller, model *model.SystemInstall) (Page, er
+ 	page.box.PackStart(page.adminCheck, false, false, 0)
+ 
+ 	// Generate signal on Name change
+-	if _, err := page.name.Connect("changed", page.onNameChange); err != nil {
+-		return nil, err
+-	}
++	_ = page.name.Connect("changed", page.onNameChange)
+ 
+ 	// Generate signal on Login change
+-	if _, err := page.login.Connect("changed", page.onLoginChange); err != nil {
+-		return nil, err
+-	}
++	_ = page.login.Connect("changed", page.onLoginChange)
+ 
+ 	// Generate signal on Password change
+-	if _, err := page.password.Connect("changed", page.onPasswordChange); err != nil {
+-		return nil, err
+-	}
++	_ = page.password.Connect("changed", page.onPasswordChange)
+ 
+ 	// Generate signal on Password Confirm change
+-	if _, err := page.passwordConfirm.Connect("changed", page.onPasswordChange); err != nil {
+-		return nil, err
+-	}
++	_ = page.passwordConfirm.Connect("changed", page.onPasswordChange)
+ 
+ 	// Generate signal on AdminCheck button click
+-	if _, err := page.adminCheck.Connect("clicked", page.onAdminClick); err != nil {
+-		return nil, err
+-	}
++	_ = page.adminCheck.Connect("clicked", page.onAdminClick)
+ 
+ 	return page, nil
+ }
+diff --git a/gui/switcher.go b/gui/switcher.go
+index a8d60254cf9b..9f9e374beadc 100644
+--- a/gui/switcher.go
++++ b/gui/switcher.go
+@@ -60,10 +60,8 @@ func NewSwitcher(stack *gtk.Stack) (*Switcher, error) {
+ 	}
+ 	switcher.buttons.required.SetActive(true)
+ 
+-	if _, err := switcher.buttons.required.Connect("toggled",
+-		func() { switcher.switchTo(switcher.buttons.required, "required") }); err != nil {
+-		return nil, err
+-	}
++	_ = switcher.buttons.required.Connect("toggled",
++		func() { switcher.switchTo(switcher.buttons.required, "required") })
+ 
+ 	switcher.box.PackStart(switcher.buttons.required, true, true, 0)
+ 
+@@ -73,10 +71,8 @@ func NewSwitcher(stack *gtk.Stack) (*Switcher, error) {
+ 		return nil, err
+ 	}
+ 	switcher.buttons.advanced.JoinGroup(switcher.buttons.required)
+-	if _, err := switcher.buttons.advanced.Connect("toggled",
+-		func() { switcher.switchTo(switcher.buttons.advanced, "advanced") }); err != nil {
+-		return nil, err
+-	}
++	_ = switcher.buttons.advanced.Connect("toggled",
++		func() { switcher.switchTo(switcher.buttons.advanced, "advanced") })
+ 	switcher.box.PackStart(switcher.buttons.advanced, true, true, 0)
+ 
+ 	return switcher, nil
+diff --git a/gui/window.go b/gui/window.go
+index 8c4875ae639f..9f7feaf07f0e 100644
+--- a/gui/window.go
++++ b/gui/window.go
+@@ -285,12 +285,7 @@ func (window *Window) createWelcomePage() (*Window, error) {
+ 	}
+ 
+ 	// TODO: Remove this temporary code after development phase
+-	_, err = window.handle.Connect("destroy", func() {
+-		gtk.MainQuit()
+-	})
+-	if err != nil {
+-		return nil, err
+-	}
++	_ = window.handle.Connect("destroy", func() { gtk.MainQuit() })
+ 
+ 	// Create footer area now
+ 	if err = window.CreateFooter(); err != nil {
+@@ -302,13 +297,7 @@ func (window *Window) createWelcomePage() (*Window, error) {
+ 
+ 	// Create syscheck pop-up when system check fails
+ 	if syscheckErr := syscheck.RunSystemCheck(true); syscheckErr != nil {
+-		_, err = glib.IdleAdd(func() {
+-			displaySyscheckDialog(syscheckErr)
+-		})
+-		if err != nil {
+-			log.ErrorError(err)
+-			return nil, err
+-		}
++		_ = glib.IdleAdd(func() { displaySyscheckDialog(syscheckErr) })
+ 	}
+ 
+ 	return window, nil
+@@ -489,17 +478,13 @@ func (window *Window) CreateFooter() error {
+ 	if window.buttons.next, err = createNavButton(utils.Locale.Get("NEXT"), "button-confirm"); err != nil {
+ 		return err
+ 	}
+-	if _, err = window.buttons.next.Connect("clicked", func() { window.onNextClick() }); err != nil {
+-		return err
+-	}
++	_ = window.buttons.next.Connect("clicked", func() { window.onNextClick() })
+ 
+ 	// Exit button
+ 	if window.buttons.exit, err = createNavButton(utils.Locale.Get("EXIT"), "button-cancel"); err != nil {
+ 		return err
+ 	}
+-	if _, err = window.buttons.exit.Connect("clicked", func() { gtk.MainQuit() }); err != nil {
+-		return err
+-	}
++	_ = window.buttons.exit.Connect("clicked", func() { gtk.MainQuit() })
+ 
+ 	// Pack the buttons
+ 	window.buttons.boxWelcome.PackEnd(window.buttons.next, false, false, 4)
+@@ -519,25 +504,19 @@ func (window *Window) UpdateFooter() error {
+ 	if window.buttons.install, err = createNavButton(utils.Locale.Get("INSTALL"), "button-confirm"); err != nil {
+ 		return err
+ 	}
+-	if _, err = window.buttons.install.Connect("clicked", func() { window.confirmInstall() }); err != nil {
+-		return err
+-	}
++	_ = window.buttons.install.Connect("clicked", func() { window.confirmInstall() })
+ 
+ 	// Exit button
+ 	if window.buttons.quit, err = createNavButton(utils.Locale.Get("EXIT"), "button-cancel"); err != nil {
+ 		return err
+ 	}
+-	if _, err = window.buttons.quit.Connect("clicked", func() { gtk.MainQuit() }); err != nil {
+-		return err
+-	}
++	_ = window.buttons.quit.Connect("clicked", func() { gtk.MainQuit() })
+ 
+ 	// Back button
+ 	if window.buttons.back, err = createNavButton(utils.Locale.Get("CHANGE LANGUAGE"), "button-cancel"); err != nil {
+ 		return err
+ 	}
+-	if _, err = window.buttons.back.Connect("clicked", func() { window.launchWelcomeView() }); err != nil {
+-		return err
+-	}
++	_ = window.buttons.back.Connect("clicked", func() { window.launchWelcomeView() })
+ 
+ 	window.buttons.back.SetMarginStart(common.StartEndMargin)
+ 
+@@ -545,17 +524,13 @@ func (window *Window) UpdateFooter() error {
+ 	if window.buttons.confirm, err = createNavButton(utils.Locale.Get("CONFIRM"), "button-confirm"); err != nil {
+ 		return err
+ 	}
+-	if _, err = window.buttons.confirm.Connect("clicked", func() { window.onConfirmClick() }); err != nil {
+-		return err
+-	}
++	_ = window.buttons.confirm.Connect("clicked", func() { window.onConfirmClick() })
+ 
+ 	// Cancel button
+ 	if window.buttons.cancel, err = createNavButton(utils.Locale.Get("CANCEL"), "button-cancel"); err != nil {
+ 		return err
+ 	}
+-	if _, err = window.buttons.cancel.Connect("clicked", func() { window.onCancelClick() }); err != nil {
+-		return err
+-	}
++	_ = window.buttons.cancel.Connect("clicked", func() { window.onCancelClick() })
+ 
+ 	// Create box for primary buttons
+ 	if window.buttons.boxPrimary, err = gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 0); err != nil {
+@@ -759,7 +734,8 @@ func writeToConfirmInstallDialog(buffer *gtk.TextBuffer, dryRunResults *storage.
+ func setConfirmButtonState(dialog *gtk.Dialog, window *Window) error {
+ 	var err error
+ 	if storage.GetImpactOnOtherDisks() && !window.model.MediaOpts.ForceDestructive {
+-		if confirmButton, err := dialog.GetWidgetForResponse(gtk.RESPONSE_OK); err == nil {
++		if buttonIWidget, err := dialog.GetWidgetForResponse(gtk.RESPONSE_OK); err == nil {
++			confirmButton := buttonIWidget.ToWidget()
+ 			confirmButton.SetSensitive(false)
+ 			return nil
+ 		}
+@@ -871,11 +847,7 @@ func (window *Window) confirmInstall() {
+ 		return
+ 	}
+ 
+-	_, err = dialog.Connect("response", window.dialogResponse)
+-	if err != nil {
+-		log.Error("Error connecting to dialog", err)
+-		return
+-	}
++	_ = dialog.Connect("response", window.dialogResponse)
+ 
+ 	// Valid network is required to install without offline content or additional bundles
+ 	if (!swupd.OfflineIsUsable(utils.VersionUintString(window.model.Version), window.options) ||
+@@ -896,18 +868,15 @@ func (window *Window) confirmInstall() {
+ 			offlineMsg := utils.Locale.Get("Offline Install: Removing additional bundles")
+ 			buffer.Insert(buffer.GetEndIter(), offlineMsg+"\n")
+ 
+-			confirmButton, err := dialog.GetWidgetForResponse(gtk.RESPONSE_OK)
++			buttonIWidget, err := dialog.GetWidgetForResponse(gtk.RESPONSE_OK)
+ 			if err != nil {
+ 				log.Error("Error getting confirm button", err)
+ 				return
+ 			}
+-			_, err = confirmButton.Connect("button-press-event", func() {
++			confirmButton := buttonIWidget.ToWidget()
++			_ = confirmButton.Connect("button-press-event", func() {
+ 				window.model.UserBundles = nil
+ 			})
+-			if err != nil {
+-				log.Error("Error connecting to dialog", err)
+-				return
+-			}
+ 		}
+ 	}
+ 
+@@ -1023,14 +992,10 @@ func displayErrorDialog(err error) {
+ 		log.Error("Error creating dialog", err)
+ 		return
+ 	}
+-	_, err = dialog.Connect("response", func() {
++	_ = dialog.Connect("response", func() {
+ 		dialog.Destroy()
+ 		gtk.MainQuit() // Exit Installer
+ 	})
+-	if err != nil {
+-		log.Error("Error connecting to dialog", err)
+-		return
+-	}
+ 	dialog.ShowAll()
+ 	dialog.Run()
+ }
+@@ -1079,19 +1044,16 @@ func displaySyscheckDialog(syscheckErr error) {
+ 	dialog.SetDeletable(false)
+ 
+ 	// Configure button
+-	confirmButton, err := dialog.GetWidgetForResponse(gtk.RESPONSE_OK)
++	buttonIWidget, err := dialog.GetWidgetForResponse(gtk.RESPONSE_OK)
+ 	if err != nil {
+ 		log.Error("Error getting confirm button", err)
+ 		return
+ 	}
+-	_, err = confirmButton.Connect("button-press-event", func() {
++	confirmButton := buttonIWidget.ToWidget()
++	_ = confirmButton.Connect("button-press-event", func() {
+ 		dialog.Destroy()
+ 		gtk.MainQuit() // Exit Installer
+ 	})
+-	if err != nil {
+-		log.Error("Error connecting to dialog", err)
+-		return
+-	}
+ 
+ 	dialog.ShowAll()
+ 	dialog.Run()
+-- 
+2.32.0
+

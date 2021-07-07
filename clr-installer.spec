@@ -4,7 +4,7 @@
 #
 Name     : clr-installer
 Version  : 2.7.2
-Release  : 70
+Release  : 71
 URL      : https://github.com/clearlinux/clr-installer/archive/2.7.2.tar.gz
 Source0  : https://github.com/clearlinux/clr-installer/archive/2.7.2.tar.gz
 Summary  : No detailed summary available
@@ -17,6 +17,9 @@ Requires: clr-installer-services = %{version}-%{release}
 BuildRequires : buildreq-golang
 BuildRequires : glib-dev
 BuildRequires : gtk3-dev
+Patch1: 0001-vendor-new-release-of-gotk3.patch
+Patch2: 0002-Fixes-for-changes-to-gotk3-v0.6.0.patch
+Patch3: 0003-Force-the-version-due-to-patching.patch
 
 %description
 # Clear Linux Installer
@@ -69,6 +72,9 @@ services components for the clr-installer package.
 %prep
 %setup -q -n clr-installer-2.7.2
 cd %{_builddir}/clr-installer-2.7.2
+%patch1 -p1
+%patch2 -p1
+%patch3 -p1
 
 %build
 ## build_prepend content
@@ -78,7 +84,7 @@ export http_proxy=http://127.0.0.1:9/
 export https_proxy=http://127.0.0.1:9/
 export no_proxy=localhost,127.0.0.1,0.0.0.0
 export LANG=C.UTF-8
-export SOURCE_DATE_EPOCH=1612402531
+export SOURCE_DATE_EPOCH=1625696666
 export GCC_IGNORE_WERROR=1
 export CFLAGS="$CFLAGS -fno-lto "
 export FCFLAGS="$FFLAGS -fno-lto "
@@ -88,7 +94,7 @@ make  %{?_smp_mflags}
 
 
 %install
-export SOURCE_DATE_EPOCH=1612402531
+export SOURCE_DATE_EPOCH=1625696666
 rm -rf %{buildroot}
 ## install_prepend content
 export GOFLAGS='-buildmode=pie'
