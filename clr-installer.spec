@@ -4,7 +4,7 @@
 #
 Name     : clr-installer
 Version  : 2.7.2
-Release  : 74
+Release  : 75
 URL      : https://github.com/clearlinux/clr-installer/archive/2.7.2.tar.gz
 Source0  : https://github.com/clearlinux/clr-installer/archive/2.7.2.tar.gz
 Summary  : No detailed summary available
