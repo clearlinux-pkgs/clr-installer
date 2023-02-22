@@ -1,5 +1,5 @@
 PKG_NAME := clr-installer
-URL = https://github.com/clearlinux/clr-installer/archive/2.7.4.tar.gz
+URL = https://github.com/clearlinux/clr-installer/archive/refs/tags/2.7.6.tar.gz
 ARCHIVES = 
 
 include ../common/Makefile.common
