@@ -4,7 +4,7 @@
 #
 Name     : clr-installer
 Version  : 2.7.6
-Release  : 98
+Release  : 99
 URL      : https://github.com/clearlinux/clr-installer/archive/refs/tags/2.7.6.tar.gz
 Source0  : https://github.com/clearlinux/clr-installer/archive/refs/tags/2.7.6.tar.gz
 Summary  : No detailed summary available
@@ -64,6 +64,7 @@ license components for the clr-installer package.
 %package services
 Summary: services components for the clr-installer package.
 Group: Systemd services
+Requires: /usr/bin/reboot
 
 %description services
 services components for the clr-installer package.
@@ -82,7 +83,7 @@ export http_proxy=http://127.0.0.1:9/
 export https_proxy=http://127.0.0.1:9/
 export no_proxy=localhost,127.0.0.1,0.0.0.0
 export LANG=C.UTF-8
-export SOURCE_DATE_EPOCH=1677107210
+export SOURCE_DATE_EPOCH=1678231435
 export GCC_IGNORE_WERROR=1
 export CFLAGS="$CFLAGS -fdebug-types-section -femit-struct-debug-baseonly -fno-lto -g1 -gno-column-info -gno-variable-location-views -gz "
 export FCFLAGS="$FFLAGS -fdebug-types-section -femit-struct-debug-baseonly -fno-lto -g1 -gno-column-info -gno-variable-location-views -gz "
@@ -92,7 +93,7 @@ make  %{?_smp_mflags}
 
 
 %install
-export SOURCE_DATE_EPOCH=1677107210
+export SOURCE_DATE_EPOCH=1678231435
 rm -rf %{buildroot}
 ## install_prepend content
 export GOFLAGS='-buildmode=pie'
