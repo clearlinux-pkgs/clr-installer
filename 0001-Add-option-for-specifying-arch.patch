@@ -1,0 +1,75 @@
+From 6f42b9630c0d073bb63779a7d6f909fedc0c91e1 Mon Sep 17 00:00:00 2001
+From: William Douglas <william.douglas@intel.com>
+Date: Tue, 18 Jun 2024 15:56:38 -0700
+Subject: [PATCH] Add option for specifying arch
+
+Enable passing an arch field (see Clear Linux specific swupd patch for
+details).
+
+Signed-off-by: William Douglas <william.douglas@intel.com>
+---
+ args/args.go   | 9 +++++++++
+ swupd/swupd.go | 6 ++++++
+ 2 files changed, 15 insertions(+)
+
+diff --git a/args/args.go b/args/args.go
+index 19e56eb..320fe6f 100644
+--- a/args/args.go
++++ b/args/args.go
+@@ -102,6 +102,7 @@ type Args struct {
+ 	SkipValidationAllSet    bool
+ 	SwapFileSize            string
+ 	ForceDestructive        bool
++	Arch                    int
+ }
+ 
+ func (args *Args) setKernelArgs() (err error) {
+@@ -434,6 +435,14 @@ func (args *Args) setCommandLineArgs() (err error) {
+ 			" "+"RAID, lvm etc. Proceed with caution!",
+ 	)
+ 
++	flag.IntVar(
++		&args.Arch,
++		"arch",
++		-1,
++		"Arch level to target for install",
++	)
++	makeFlagHidden(flag, "arch")
++
+ 	spflag.ErrHelp = errors.New("Clear Linux Installer program")
+ 
+ 	saveConfigFile := args.ConfigFile
+diff --git a/swupd/swupd.go b/swupd/swupd.go
+index 9174806..68c1e1c 100644
+--- a/swupd/swupd.go
++++ b/swupd/swupd.go
+@@ -109,6 +109,7 @@ type SoftwareUpdater struct {
+ 	skipDiskSpaceCheck bool
+ 	allowInsecureHTTP  bool
+ 	skipOptional       bool
++	arch               int
+ }
+ 
+ // Bundle maps a map name and description with the actual checkbox
+@@ -267,6 +268,7 @@ func New(rootDir string, options args.Args, model *model.SystemInstall) *Softwar
+ 		options.SwupdSkipDiskSpaceCheck,
+ 		model.AllowInsecureHTTP,
+ 		model.SwupdSkipOptional,
++		options.Arch,
+ 	}
+ }
+ 
+@@ -303,6 +305,10 @@ func (s *SoftwareUpdater) setExtraFlags(args []string) []string {
+ 		args = append(args, fmt.Sprintf("--versionurl=%s", s.versionURL))
+ 	}
+ 
++	if s.arch >= 0 {
++		args = append(args, fmt.Sprintf("--arch=%d", s.arch))
++	}
++
+ 	return args
+ }
+ 
+-- 
+2.45.1
+
